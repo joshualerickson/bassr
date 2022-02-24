@@ -23,9 +23,11 @@ get_StreamStats_points <- function(state){
 
   state_num <- state_num %>%
                dplyr::filter(abb %in% state)
+
   grp <- c("Esri.WorldImagery", "CartoDB.Positron",
            "OpenStreetMap", "CartoDB.DarkMatter", "OpenTopoMap",
            "Hydrography")
+
   att <- paste0("<a href='https://www.usgs.gov/'>", "U.S. Geological Survey</a> | ",
                 "<a href='https://www.usgs.gov/laws/policies_notices.html'>",
                 "Policies</a>")
@@ -33,6 +35,9 @@ get_StreamStats_points <- function(state){
     sprintf("https://%s/arcgis/services/%s/MapServer/WmsServer",
             host, service)
   }
+
+  state_sf <- USAboundaries::us_states(states = state_num$abb)
+  bb <- sf::st_bbox(state_sf)
 
   map <- leaflet::leaflet()
 
@@ -53,11 +58,22 @@ get_StreamStats_points <- function(state){
                                    group = grp[[5]])
   opt <- leaflet::WMSTileOptions(format = "image/png",
                                  transparent = TRUE)
+
   map <- leaflet::addWMSTiles(map, GetURL("USGSHydroCached"),
                               group = grp[6], options = opt, layers = "0", attribution = att)
+
   opt <- leaflet::layersControlOptions(collapsed = TRUE)
+
+  map <- leaflet::addPolygons(map,data = state_sf,
+                              fillOpacity = 0,
+                              color = 'black',
+                              weight = 5)
+
   map <- leaflet::addLayersControl(map, baseGroups = grp[1:5],
                                    overlayGroups = grp[6], options = opt)
+
+  map <- leaflet::fitBounds(map, bb[['xmin']], bb[['ymin']], bb[['xmax']], bb[['ymax']])
+
   url <- 'https://gis.streamstats.usgs.gov/arcgis/rest/services/StreamStats/stateServices/MapServer'
 
   map <- map %>%

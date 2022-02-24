@@ -25,27 +25,5 @@ test_that("streamstats", {
 
   expect_equal(nrow(data), length(st))
 
-  group <- data %>%
-    sf::st_drop_geometry() %>%
-    dplyr::mutate(group = dplyr::row_number()) %>%
-    dplyr::select(group)
 
-  testthat::skip_on_cran()
-
-  usgs_raws <- data.frame(lat = lat, lon = lon, group = group[,1], state = st, crs = 4326)
-
-  watersheds <-  usgs_raws %>%
-    split(.$group) %>%
-    purrr::map(purrr::safely(~dl_ws(.))) %>%
-    purrr::keep(~length(.) != 0) %>%
-    purrr::map(~.x[['result']])
-
-  expect_equal(nrow(usgs_raws), length(watersheds))
-
-  final_df <-
-    purrr::map(watersheds, purrr::safely(~get_flow_basin(.)))%>%
-    purrr::map(~.x[['result']]) %>%
-    plyr::rbind.fill()
-
-  expect_equal(nrow(data), nrow(watersheds))
 })
